@@ -113,10 +113,17 @@ namespace SecurityLibrary
 
             // Calculate the key based on the most frequent letter's shift
             int key = maxIndex - 4; // 'E' is the most frequent letter in English
-
+            
             // Ensure the key is within the range [0, 25]
             key = (key + 26) % 26;
-
+            if (Decrypt(cipherText, key).ToLower() != plainText)
+            {
+                key = 0;
+                while (Decrypt(cipherText, key).ToLower() != plainText)
+                {
+                    key += 1;
+                }
+            }
             return key;
         }
     }

@@ -99,11 +99,16 @@ namespace SecurityLibrary
             }
             if (plain.Contains("x"))
             {
+
                 for (int i = 0; i < plain.Length; i++)
                 {
                     while (plain[i] != 'x' && i < plain.Length - 1)
                     {
                         i++;
+                    }
+                    if (i % 2 != 0)
+                    {
+                        continue;
                     }
                     if (i == plain.Length - 1)
                     {
@@ -112,12 +117,9 @@ namespace SecurityLibrary
                             plain = plain.Remove(i, 1);
                         }
                     }
-                    else if (plain[i - 1] == plain[i + 1] )
+                    else if (plain[i - 1] == plain[i + 1])
                     {
-                        if(plain[i - 1] == 'l' && plain[i + 1] == 'l')
-                        {
-                            continue;
-                        }
+
                         plain = plain.Remove(i, 1);
                     }
                 }

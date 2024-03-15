@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,9 +14,40 @@ namespace SecurityLibrary
 
         public List<int> Analyse(List<int> plainText, List<int> cipherText)
         {
+            List<int> result = new List<int>();
+            result.Add(0);
+            result.Add(0);
+            result.Add(0);
+            result.Add(0);
+            for (int item1 = 0; item1<26 && !checkEqual(Encrypt(plainText, result), cipherText); item1++) 
+            {
+                for (int item2 = 0; item2 < 26 && !checkEqual(Encrypt(plainText, result), cipherText); item2++)
+                {
+                    for (int item3 = 0; item3 < 26 && !checkEqual(Encrypt(plainText, result), cipherText); item3++)
+                    {
+                        for (int item4 = 0; item4 < 26 && !checkEqual(Encrypt(plainText, result), cipherText); item4++)
+                        {
+                            result[0] = item1;
+                            result[1] = item2;
+                            result[2] = item3;
+                            result[3] = item4;
+                        }
+                    }
+                }
 
-            throw new NotImplementedException();
+
+            }
+            if(!checkEqual(Encrypt(plainText, result), cipherText))
+            {
+                throw new InvalidAnlysisException();
+            }
+            else
+            {
+                return result;
+            }
         }
+
+
         public string Analyse(string plainText, string cipherText)
         {
             throw new NotImplementedException();
@@ -113,7 +145,51 @@ namespace SecurityLibrary
         public List<int> Analyse3By3Key(List<int> plain3, List<int> cipher3)
         {
 
-            throw new NotImplementedException();
+            double[,] cipherMat = constructKeyMat(cipher3, true);
+            double[,] plainMat = constructKeyMat(plain3, true);
+            int modmultinv = getModularMultiplicativeInverse(Convert.ToInt32(get3by3det(plainMat)), 26);
+            double[,] plainMat2 = new double[3,3];
+            plainMat2 = getInverseOfMatrix(constructKeyMat(plain3, true));
+
+            for (int i = 0; i < plainMat2.GetLength(0); i++)
+            {
+                for(int j = 0; j<plainMat2.GetLength(1); j++)
+                {
+                    plainMat2[i,j]*=modmultinv;
+                    plainMat2[i,j]%=26;
+                }
+            }
+            //cipherMat = transpose(cipherMat);
+            double[,] key = new double[3, 3];
+            key[0, 0] = plainMat2[0, 0] * cipherMat[0, 0] + plainMat2[0, 1] * cipherMat[1, 0] + plainMat2[0, 2] * cipherMat[2, 0];
+            key[0, 1] = plainMat2[1, 0] * cipherMat[0, 0] + plainMat2[1, 1] * cipherMat[1, 0] + plainMat2[1, 2] * cipherMat[2, 0];
+            key[0, 2] = plainMat2[2, 0] * cipherMat[0, 0] + plainMat2[2, 1] * cipherMat[1, 0] + plainMat2[2, 2] * cipherMat[2, 0];
+            key[1, 0] = plainMat2[0, 0] * cipherMat[0, 1] + plainMat2[0, 1] * cipherMat[1, 1] + plainMat2[0, 2] * cipherMat[2, 1];
+            key[1, 1] = plainMat2[1, 0] * cipherMat[0, 1] + plainMat2[1, 1] * cipherMat[1, 1] + plainMat2[1, 2] * cipherMat[2, 1];
+            key[1, 2] = plainMat2[2, 0] * cipherMat[0, 1] + plainMat2[2, 1] * cipherMat[1, 1] + plainMat2[2, 2] * cipherMat[2, 1];
+            key[2, 0] = plainMat2[0, 0] * cipherMat[0, 2] + plainMat2[0, 1] * cipherMat[1, 2] + plainMat2[0, 2] * cipherMat[2, 2];
+            key[2, 1] = plainMat2[1, 0] * cipherMat[0, 2] + plainMat2[1, 1] * cipherMat[1, 2] + plainMat2[1, 2] * cipherMat[2, 2];
+            key[2, 2] = plainMat2[2, 0] * cipherMat[0, 2] + plainMat2[2, 1] * cipherMat[1, 2] + plainMat2[2, 2] * cipherMat[2, 2]; ;
+            for (int i = 0; i < key.GetLength(0); i++)
+            {
+                for (int j = 0; j < key.GetLength(1); j++)
+                {
+                    if (key[i, j] < 0)
+                    {
+                        while (key[i, j] < 0)
+                        {
+                            key[i, j] += 26;
+                        }
+                    }
+                    else
+                    {
+                        key[i, j] %= 26;
+                    }
+                }
+            }
+            List<int> ret = new List<int> { Convert.ToInt32(key[0, 0]), Convert.ToInt32(key[0, 1]), Convert.ToInt32(key[0, 2]), Convert.ToInt32(key[1, 0]),
+                Convert.ToInt32(key[1, 1]), Convert.ToInt32(key[1, 2]), Convert.ToInt32(key[2, 0]), Convert.ToInt32(key[2, 1]), Convert.ToInt32(key[2, 2]) };
+            return ret;
         }
 
         public string Analyse3By3Key(string plain3, string cipher3)
@@ -302,10 +378,10 @@ namespace SecurityLibrary
             {
                 double[,] ret = new double[2, 2];
                 double det = 1 / ((mat[0, 0] * mat[1, 1]) - (mat[0, 1] * mat[1,0]));
-                ret[0, 0] = det * mat[1, 1];
-                ret[1, 1] = det * mat[0, 0];
-                ret[0, 1] = -(det * mat[0, 1]);
-                ret[1, 0] = -(det * mat[1, 0]);
+                ret[0, 0] = Math.Round(det * mat[1, 1]);
+                ret[1, 1] = Math.Round(det * mat[0, 0]);
+                ret[0, 1] =Math.Round( -(det * mat[0, 1]));
+                ret[1, 0] =Math.Round(-(det * mat[1, 0]));
                 double[,] identity = multiplySquareMats(ret, mat);
                 if (identity[0,0] == 1 && identity[0,1] == 0 && identity[1,0] == 0 && identity[1,1] == 1)
                 {
@@ -373,6 +449,64 @@ namespace SecurityLibrary
                 i++;
             }
             return i;
+        }
+        public bool isValid2By2Matrix(double[,] mat)
+        {
+            double[,] ret = new double[2, 2];
+            double det = 1 / ((mat[0, 0] * mat[1, 1]) - (mat[0, 1] * mat[1, 0]));
+            ret[0, 0] = det * mat[1, 1];
+            ret[1, 1] = det * mat[0, 0];
+            ret[0, 1] = -(det * mat[0, 1]);
+            ret[1, 0] = -(det * mat[1, 0]);
+            double[,] identity = multiplySquareMats(ret, mat);
+            if (identity[0, 0] == 1 && identity[0, 1] == 0 && identity[1, 0] == 0 && identity[1, 1] == 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public int[,] multiply2By2Matrices(int[,] mat1, int[,] mat2)
+        {
+            return new int[,] { { mat1[0, 0] * mat2[0, 0] + mat1[0, 1] * mat2[1, 0], mat1[0, 0] * mat2[0, 1] + mat1[0, 1] * mat2[1, 1] }, { mat1[1, 0] * mat2[0, 0] + mat1[1, 1] * mat2[1, 0], mat1[1, 0] * mat2[0, 1] + mat1[1, 1] * mat2[1, 1] } };
+        }
+        public double[,] multiplynBynMats(double[,] mat1, double[,] mat2)
+        {
+            if(mat1.GetLength(1) != mat2.GetLength(0))
+            {
+                throw new ArgumentException("mat1 columns not equal mat 2 rows");
+            }
+            double[,] ret = new double[mat1.GetLength(0), mat2.GetLength(0)];
+            for(int i = 0; i<mat1.GetLength(0); i++)
+            {
+                for(int j = 0; j<mat2.GetLength(1); j++)
+                {
+                    ret[i, j] = 0;
+                    for(int k = 0; k<mat2.GetLength(0); k++)
+                    {
+                        ret[i, j] += mat1[i, k] + mat2[k,j];
+
+                    }
+                }
+            }
+            return ret;
+        }
+        public bool checkEqual(List<int> l1, List<int> l2)
+        {
+            if(l1.Count != l2.Count)
+            {
+                return false;
+            }
+            for(int i = 0; i<l1.Count; i++)
+            {
+                if (l1[i] != l2[i])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
